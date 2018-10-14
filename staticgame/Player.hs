@@ -29,6 +29,12 @@ playSomething cs ledSuit =
 leadSuit :: Trick -> Suit
 leadSuit cs = let (Card suit _, _) = last cs in suit
 
+getRank :: Card -> Rank
+getRank (Card _ rank) = rank
+
+getSuit :: Card -> Suit
+getSuit (Card suit _) = suit
+
 -- | Play a card for the current trick.
 -- If you are the "lead" player, you must follow the suit of the card that was led.
 playCard :: PlayFunc
