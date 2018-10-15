@@ -16,8 +16,8 @@ where
 import OhTypes
 import OhHell
 
-getRank :: Card -> Rank
-getRank (Card _ rank) = rank 
+-- getRank :: Card -> Rank
+-- getRank (Card _ rank) = rank 
 
 getSuit :: Card -> Suit
 getSuit (Card suit _) = suit
@@ -31,23 +31,23 @@ cardsOfSuit cs s = filter ((s==) . getSuit) cs
 cardsFromTrick :: Trick -> [Card]
 cardsFromTrick t = map fst t
 
-compareCard :: Suit -> Card -> Card -> Ordering
-compareCard tSuit c1 c2 
-    | getSuit c1 == getSuit c2 = getRank c1 `compare` getRank c2
-    | getSuit c1 == tSuit = GT
-    | getSuit c2 == tSuit = LT
-    | otherwise = EQ
+-- compareCard :: Suit -> Card -> Card -> Ordering
+-- compareCard tSuit c1 c2 
+--     | getSuit c1 == getSuit c2 = getRank c1 `compare` getRank c2
+--     | getSuit c1 == tSuit = GT
+--     | getSuit c2 == tSuit = LT
+--     | otherwise = EQ
 
-higherCard :: Suit -> Card -> Card -> Card
-higherCard tSuit c1 c2
-    | compareCard tSuit c1 c2 == LT = c2    -- if c2 is higher than return it
-    | otherwise = c1                        -- if c1 is higher or equal to c2 return c2
+-- higherCard :: Suit -> Card -> Card -> Card
+-- higherCard tSuit c1 c2
+--     | compareCard tSuit c1 c2 == LT = c2    -- if c2 is higher than return it
+--     | otherwise = c1                        -- if c1 is higher or equal to c2 return c2
 
-highestCard :: [Card] -> Suit -> Card
-highestCard cs tSuit = foldr1(\c1 c2 -> higherCard tSuit c1 c2) cs  -- using foldr1 as we know cards in hand are never going to be 0 (and when they will be playCard will not be called!)
+-- highestCard :: [Card] -> Card
+-- highestCard cs tSuit = foldr1(\c1 c2 -> higherCard tSuit c1 c2) cs  -- using foldr1 as we know cards in hand are never going to be 0 (and when they will be playCard will not be called!)
 
-lowestCard :: [Card] -> Suit -> Card
-lowestCard cs tSuit = foldr1(\c1 c2 -> if compareCard tSuit c1 c2 == GT then c2 else c1) cs
+-- lowestCard :: [Card] -> Suit -> Card
+-- lowestCard cs tSuit = foldr1(\c1 c2 -> if compareCard tSuit c1 c2 == GT then c2 else c1) cs
 
 myWins :: PlayerId -> Suit -> [Trick] -> Int
 myWins pID tSuit ts = length(filter (pID==) (map (OhHell.winner tSuit) ts))
@@ -58,19 +58,27 @@ myBid pID bs = snd $ head $ (filter((pID==).fst) bs)
 
 tryToWin :: [Card] -> Suit -> [Card] -> Card
 tryToWin cs tSuit playedCards
-    | not $ null ledSuitCards = highestCard ledSuitCards (leadSuit playedCards)
-    | not $ null trumpSuitCards = highestCard trumpSuitCards tSuit
-    | otherwise = lowestCard cs (head $ filter(\s -> tSuit /= s && (leadSuit playedCards) /= s) [Spade ..])
+    | null playedCards = maximum cs
+    | not $ null ledSuitCards = maximum ledSuitCards
+    | not $ null trumpSuitCards = maximum trumpSuitCards
+    | otherwise = minimum otherCards
     where
-        ledSuitCards = cardsOfSuit cs (leadSuit playedCards)
+        ledSuit = leadSuit playedCards
+        ledSuitCards = cardsOfSuit cs ledSuit
         trumpSuitCards = cardsOfSuit cs tSuit
+        otherCards = filter (\c -> getSuit c /= tSuit && getSuit c /= ledSuit) cs
 
 dontWin :: [Card] -> Suit -> [Card] -> Card
 dontWin cs tSuit playedCards
-    | not $ null ledSuitCards = lowestCard ledSuitCards (leadSuit playedCards)
-    | otherwise = highestCard cs (head $ filter(tSuit/=) [Spade ..])
+    | null playedCards = maximum cs
+    | not $ null ledSuitCards = minimum ledSuitCards
+    | not $ null otherCards = maximum otherCards
+    | otherwise = maximum trumpSuitCards
     where
-        ledSuitCards = cardsOfSuit cs (leadSuit playedCards)
+        ledSuit = leadSuit playedCards
+        ledSuitCards = cardsOfSuit cs ledSuit
+        trumpSuitCards = cardsOfSuit cs tSuit
+        otherCards = filter (\c -> getSuit c /= tSuit && getSuit c /= ledSuit) cs
 
 -- playSomething :: [Card] -> Suit -> Card
 -- playSomething cs ledSuit
@@ -85,7 +93,7 @@ playCard pID cs bs trump ts thisTrick
     | myBidValue > myWinValue = tryToWin cs trumpSuit currentCards
     | otherwise = dontWin cs trumpSuit currentCards
     where
-        trumpSuit = (getSuit trump)
+        trumpSuit = getSuit trump
         myBidValue = myBid pID bs 
         myWinValue = myWins pID trumpSuit ts
         currentCards = cardsFromTrick thisTrick
