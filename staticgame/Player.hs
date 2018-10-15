@@ -22,6 +22,15 @@ import OhHell
 getSuit :: Card -> Suit
 getSuit (Card suit _) = suit
 
+-- gt :: Suit -> Card -> Card -> Card
+-- gt tSuit c1 c2
+--     | c1Suit == c2Suit = max c1 c2
+--     | c1Suit == tSuit = c1
+--     | c2Suit == tSuit 
+--     where
+--         c1Suit = getSuit c1
+--         c2Suit = getSuit c2
+
 leadSuit :: [Card] -> Suit
 leadSuit cs = getSuit $ last cs
 
@@ -31,24 +40,6 @@ cardsOfSuit cs s = filter ((s==) . getSuit) cs
 cardsFromTrick :: Trick -> [Card]
 cardsFromTrick t = map fst t
 
--- compareCard :: Suit -> Card -> Card -> Ordering
--- compareCard tSuit c1 c2 
---     | getSuit c1 == getSuit c2 = getRank c1 `compare` getRank c2
---     | getSuit c1 == tSuit = GT
---     | getSuit c2 == tSuit = LT
---     | otherwise = EQ
-
--- higherCard :: Suit -> Card -> Card -> Card
--- higherCard tSuit c1 c2
---     | compareCard tSuit c1 c2 == LT = c2    -- if c2 is higher than return it
---     | otherwise = c1                        -- if c1 is higher or equal to c2 return c2
-
--- highestCard :: [Card] -> Card
--- highestCard cs tSuit = foldr1(\c1 c2 -> higherCard tSuit c1 c2) cs  -- using foldr1 as we know cards in hand are never going to be 0 (and when they will be playCard will not be called!)
-
--- lowestCard :: [Card] -> Suit -> Card
--- lowestCard cs tSuit = foldr1(\c1 c2 -> if compareCard tSuit c1 c2 == GT then c2 else c1) cs
-
 myWins :: PlayerId -> Suit -> [Trick] -> Int
 myWins pID tSuit ts = length(filter (pID==) (map (OhHell.winner tSuit) ts))
 
@@ -57,8 +48,8 @@ myBid :: PlayerId -> [(PlayerId,Int)] -> Int
 myBid pID bs = snd $ head $ (filter((pID==).fst) bs)
 
 tryToWin :: [Card] -> Suit -> [Card] -> Card
-tryToWin cs tSuit playedCards
-    | null playedCards = maximum cs
+tryToWin cs tSuit playedCards               -- $$$$ improve this so that it checks if following players have other cards or not
+    | null playedCards = maximum cs         -- $$$$ define a function to get the max
     | not $ null ledSuitCards = maximum ledSuitCards
     | not $ null trumpSuitCards = maximum trumpSuitCards
     | otherwise = minimum otherCards
@@ -69,23 +60,16 @@ tryToWin cs tSuit playedCards
         otherCards = filter (\c -> getSuit c /= tSuit && getSuit c /= ledSuit) cs
 
 dontWin :: [Card] -> Suit -> [Card] -> Card
-dontWin cs tSuit playedCards
-    | null playedCards = maximum cs
+dontWin cs tSuit playedCards                -- return highest card < the minimum.
+    | null playedCards = minimum cs
     | not $ null ledSuitCards = minimum ledSuitCards
     | not $ null otherCards = maximum otherCards
-    | otherwise = maximum trumpSuitCards
+    | otherwise = minimum trumpSuitCards
     where
         ledSuit = leadSuit playedCards
         ledSuitCards = cardsOfSuit cs ledSuit
         trumpSuitCards = cardsOfSuit cs tSuit
         otherCards = filter (\c -> getSuit c /= tSuit && getSuit c /= ledSuit) cs
-
--- playSomething :: [Card] -> Suit -> Card
--- playSomething cs ledSuit
---     | not $ null ledSuitCards = head ledSuitCards
---     | otherwise = head cs
---     where
---         ledSuitCards = cardsOfSuit cs ledSuit
 
 playCard :: PlayFunc
 playCard pID cs bs trump ts thisTrick
