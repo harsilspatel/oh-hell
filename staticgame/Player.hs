@@ -90,8 +90,8 @@ dontWin cs tSuit playedCards
 playCard :: PlayFunc
 playCard pID cs bs trump ts thisTrick
     --  = playSomething cs (getSuit trump)
-    | myBidValue > myWinValue = tryToWin cs trumpSuit currentCards
-    | otherwise = dontWin cs trumpSuit currentCards
+    | myBidValue == myWinValue = dontWin cs trumpSuit currentCards
+    | otherwise = tryToWin cs trumpSuit currentCards
     where
         trumpSuit = getSuit trump
         myBidValue = myBid pID bs 
