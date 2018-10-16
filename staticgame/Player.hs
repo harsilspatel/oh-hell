@@ -16,8 +16,8 @@ where
 import OhTypes
 import OhHell
 
--- getRank :: Card -> Rank
--- getRank (Card _ rank) = rank 
+getRank :: Card -> Rank
+getRank (Card _ rank) = rank 
 
 getSuit :: Card -> Suit
 getSuit (Card suit _) = suit
@@ -47,12 +47,19 @@ myWins pID tSuit ts = length(filter (pID==) (map (OhHell.winner tSuit) ts))
 myBid :: PlayerId -> [(PlayerId,Int)] -> Int
 myBid pID bs = snd $ head $ (filter((pID==).fst) bs)
 
+sortByRank :: [Card] -> [Card]
+sortByRank [] = []
+sortByRank (c:cs) = (sortByRank lower) ++ [c] ++ (sortByRank higher)
+    where
+        lower = filter((< getRank c) . getRank) cs
+        higher = filter((>= getRank c). getRank) cs
+
 tryToWin :: [Card] -> Suit -> [Card] -> Card
 tryToWin cs tSuit playedCards               -- $$$$ improve this so that it checks if following players have other cards or not
-    | null playedCards = maximum cs         -- $$$$ define a function to get the max
+    | null playedCards = last $ sortByRank cs         -- $$$$ define a function to get the max
     | not $ null ledSuitCards = maximum ledSuitCards
     | not $ null trumpSuitCards = maximum trumpSuitCards
-    | otherwise = minimum otherCards
+    | otherwise = head $ sortByRank otherCards
     where
         ledSuit = leadSuit playedCards
         ledSuitCards = cardsOfSuit cs ledSuit
@@ -61,9 +68,9 @@ tryToWin cs tSuit playedCards               -- $$$$ improve this so that it chec
 
 dontWin :: [Card] -> Suit -> [Card] -> Card
 dontWin cs tSuit playedCards                -- return highest card < the minimum.
-    | null playedCards = minimum cs
+    | null playedCards = head $ sortByRank cs
     | not $ null ledSuitCards = minimum ledSuitCards
-    | not $ null otherCards = maximum otherCards
+    | not $ null otherCards = last $ sortByRank otherCards
     | otherwise = minimum trumpSuitCards
     where
         ledSuit = leadSuit playedCards
@@ -84,11 +91,13 @@ playCard pID cs bs trump ts thisTrick
 
 makeBid :: BidFunc
 makeBid trump cs ps bids
-    | followsHookRule = trumpCardsCount
-    | trumpCardsCount-1 >= 0 = trumpCardsCount-1
-    | otherwise = trumpCardsCount+1
+    | followsHookRule = theBid
+    | theBid-1 >= 0 = theBid-1
+    | otherwise = theBid+1
     where
         trumpSuit = getSuit trump
         trumpCards = cardsOfSuit cs trumpSuit
-        trumpCardsCount = length trumpCards
-        followsHookRule = OhHell.hookRule (bids++[trumpCardsCount]) ps (length cs)
+        aces = filter ((Ace==).getRank) cs
+        nonTrumpAces = filter((trumpSuit/=).getSuit) aces
+        theBid = length trumpCards + length nonTrumpAces
+        followsHookRule = OhHell.hookRule (bids++[theBid]) ps (length cs)
