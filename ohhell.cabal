@@ -28,9 +28,11 @@ library
   exposed-modules:
       EitherIO
       Entries
+      Instances
       Logs
       OhHell
       OhTypes
+      Parser
   other-modules:
       Paths_ohhell
   hs-source-dirs:
