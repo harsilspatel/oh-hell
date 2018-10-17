@@ -39,7 +39,9 @@ library:
 executables:
   staticgame:
     main: Main.hs
-    source-dirs: staticgame
+    source-dirs:
+      - staticgame
+      - parser
     ghc-options:
     - -Wall
     - -Wno-trustworthy-safe
