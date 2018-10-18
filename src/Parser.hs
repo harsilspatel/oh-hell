@@ -112,8 +112,8 @@ list k = list1 k ||| pure []
 -- >>> isErrorResult (parse (list1 (character *> pure 'v')) "")
 -- True
 list1 :: Parser a -> Parser [a]
-list1 k = 
-    k >>= (\k' -> (list k) >>= (\kk' -> pure (k' : kk')))
+list1 p = 
+    p >>= (\i -> (list p) >>= (\j -> pure (i : j)))
 
 -- | Return a parser that produces a character but fails if:
 --
@@ -443,8 +443,15 @@ toSuit c = case c of
     'D' -> Diamond
     'H' -> Heart
 
+-- suit :: Parser Suit
+-- suit = P (\i -> if elem (toSuit $ head i) [Spade ..] then Result "" (toSuit $ head i) else Error UnexpectedEof)
+
 suit :: Parser Suit
-suit = P (\i -> if elem (toSuit $ head i) [Spade ..] then Result "" (toSuit $ head i) else Error UnexpectedEof)
+suit = P (\i -> case i of
+    "S" -> Result "" Spade
+    "C" -> Result "" Club
+    "D" -> Result "" Diamond
+    "H" -> Result "" Heart)
 
 -- ASCII 2 = 50
 -- Rank Two = 0
@@ -459,11 +466,15 @@ toRank c
     where
         r = fromEnum(head c)
 
+rank :: Parser Rank
+rank = P (\i -> if elem (toRank i) [Two ..] then Result "" (toRank i) else Error UnexpectedEof)
+
 card :: Parser Card
-card = do
-    s <- alpha
-    r <- list1 alphaNum
-    pure (Card (toSuit s) (toRank r))
+card = (Card <$> suit) <*> rank
+-- card = do
+--     s <- alpha
+--     r <- list1 alphaNum
+--     pure (Card (toSuit s) (toRank r))
 
 toTrick :: [Card] -> Trick
 toTrick cs = zip cs (map show [0..])
@@ -486,7 +497,7 @@ trickz = do
 
     pure t
 
--- x = "1539675864,1,1,11,1,C,\"H9,CA,D2,C6;H4,H5,HA,D10;D5,H7,HQ,C3\"\r"
+-- x = "2539675864,3,4,11,5,C,\"H9,CA,D2,C6;H4,H5,HA,D10;D5,H7,HQ,C3\"\r"
 
 -- time,pos,bid,score,first,trump,tricks
 parseLine :: Parser (Int, String, Int, Int, String, Suit, [Trick])
