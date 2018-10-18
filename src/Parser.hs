@@ -1,11 +1,4 @@
-module Parser(
-    getFile,
-    printFile,
-    parseFile,
-    card,
-    hand,
-    trick
-) where
+module Parser where
 
 import Prelude
 import Data.Char
@@ -251,6 +244,9 @@ upper = satisfy isUpper
 alpha :: Parser Char
 alpha = satisfy isAlpha
 
+alphas :: Parser String
+alphas = list alpha
+
 alphaNum :: Parser Char
 alphaNum = alpha ||| digit
 
@@ -447,6 +443,9 @@ toSuit c = case c of
     'D' -> Diamond
     'H' -> Heart
 
+suit :: Parser Suit
+suit = P (\i -> if elem (toSuit $ head i) [Spade ..] then Result "" (toSuit $ head i) else Error UnexpectedEof)
+
 -- ASCII 2 = 50
 -- Rank Two = 0
 toRank :: String -> Rank
@@ -466,17 +465,48 @@ card = do
     r <- list1 alphaNum
     pure (Card (toSuit s) (toRank r))
 
-hand :: Parser [Card]
-hand = sepby card commaTok
+toTrick :: [Card] -> Trick
+toTrick cs = zip cs (map show [0..])
 
-trick :: Parser [[Card]]
-trick = do
+trick :: Parser Trick
+trick = toTrick <$> sepby card commaTok
+
+-- processTrick :: Parser [Char] -> Trick
+-- processTrick P ()
+
+trickss :: Parser [Trick]
+trickss = do
     charTok '\"'
-    trick <- (sepby hand semiColonTok)
-    pure trick
+    t <- (sepby trick semiColonTok)
+    pure t
+
+trickz :: Parser [Trick]
+trickz = do
+    t <- (sepby trick semiColonTok)
+
+    pure t
+
+-- x = "1539675864,1,1,11,1,C,\"H9,CA,D2,C6;H4,H5,HA,D10;D5,H7,HQ,C3\"\r"
 
 -- time,pos,bid,score,first,trump,tricks
--- parseLine :: String -> (Int, String, Int, Int, String, Card, [Trick])
--- parseLine s = do 
---     time <- digits
-    
+parseLine :: Parser (Int, String, Int, Int, String, Suit, [Trick])
+parseLine = do 
+    time <- digits
+    commaTok
+    pos <- alphas
+    commaTok
+    bid <- digits
+    commaTok
+    score <- digits
+    commaTok
+    first <- alphas
+    commaTok
+    trump <- suit
+    commaTok
+    charTok '\"'
+    ts <- trickz
+    pure (read time :: Int, pos, read bid :: Int, read score :: Int, first, trump, ts)
+    -- pure (undefined)
+
+-- parseFile :: Parser [(Int, String, Int, Int, String, Card, [Trick])]
+-- parseFile 
