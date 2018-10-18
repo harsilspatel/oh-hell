@@ -58,7 +58,7 @@ tryToWin :: [Card] -> Suit -> [Card] -> Card
 tryToWin cs tSuit playedCards               -- $$$$ improve this so that it checks if following players have other cards or not
     | null playedCards = last $ sortByRank cs         -- $$$$ define a function to get the max
     | not $ null ledSuitCards = maximum ledSuitCards
-    | not $ null trumpSuitCards = maximum trumpSuitCards
+    | not $ null trumpSuitCards = minimum trumpSuitCards
     | otherwise = head $ sortByRank otherCards
     where
         ledSuit = leadSuit playedCards

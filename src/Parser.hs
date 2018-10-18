@@ -1,7 +1,10 @@
 module Parser(
     getFile,
     printFile,
-    processFile
+    parseFile,
+    card,
+    hand,
+    trick
 ) where
 
 import Prelude
@@ -13,6 +16,7 @@ import Data.Traversable
 import Instances
 import OhHell
 import System.IO
+import OhTypes
 
 -- | Return a parser that always fails with the given error.
 --
@@ -182,6 +186,9 @@ isNot c = satisfy (\i -> c /= i)
 digit :: Parser Char
 digit = satisfy isDigit
 
+digits :: Parser String
+digits = list digit
+
 --
 -- | Return a parser that produces a space character but fails if
 --
@@ -243,6 +250,12 @@ upper = satisfy isUpper
 -- /Tip:/ Use the @satisfy@ and @isAlpha@ functions.
 alpha :: Parser Char
 alpha = satisfy isAlpha
+
+alphaNum :: Parser Char
+alphaNum = alpha ||| digit
+
+alphaNums :: Parser String
+alphaNums = list alphaNum
 
 -- | Return a parser that sequences the given list of parsers by producing all
 -- their results but fails on the first failing parser of the list.
@@ -421,5 +434,49 @@ printFile (fp, s) = do
     putStrLn ("> ================ " ++ fp)
     putStrLn (foldr (\line ac -> "> " ++ line ++ "\n" ++ ac) "" (lines s))
 
-processFile :: (FilePath, String) -> IO (FilePath, [String])
-processFile (fp, s) = pure (fp, lines s)
+parseFile :: (FilePath, String) -> IO (FilePath, [String])
+parseFile (fp, s) = pure (fp, lines s)
+
+semiColonTok :: Parser Char
+semiColonTok = charTok ';'
+
+toSuit :: Char -> Suit
+toSuit c = case c of
+    'S' -> Spade
+    'C' -> Club
+    'D' -> Diamond
+    'H' -> Heart
+
+-- ASCII 2 = 50
+-- Rank Two = 0
+toRank :: String -> Rank
+toRank c
+    | length c == 2 = Ten
+    | c == "J" = Jack
+    | c == "Q" = Queen
+    | c == "K" = King
+    | c == "A" = Ace
+    | otherwise = toEnum(r-50) :: Rank
+    where
+        r = fromEnum(head c)
+
+card :: Parser Card
+card = do
+    s <- alpha
+    r <- list1 alphaNum
+    pure (Card (toSuit s) (toRank r))
+
+hand :: Parser [Card]
+hand = sepby card commaTok
+
+trick :: Parser [[Card]]
+trick = do
+    charTok '\"'
+    trick <- (sepby hand semiColonTok)
+    pure trick
+
+-- time,pos,bid,score,first,trump,tricks
+-- parseLine :: String -> (Int, String, Int, Int, String, Card, [Trick])
+-- parseLine s = do 
+--     time <- digits
+    
