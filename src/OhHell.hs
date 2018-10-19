@@ -6,7 +6,7 @@ module OhHell
     sortedDeck, shuffledDeck, shuffleList,
     deal, newPlayer, winner,
     bidSize, hookRule, reneging,
-    playHand, playGame, initElo, tallyTricks
+    playHand, playGame, initElo, tallyTricks -- modified to export tallyTricks (used in Parser.hs)
   ) where
 
 import System.Random
