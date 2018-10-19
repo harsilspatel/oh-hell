@@ -4,8 +4,6 @@ module Player (
 )
 where
 {-
-Write a report describing your design and strategy here.
-
 How this file is organised:
     1. All the functions are organised in a way that the simpler functions, such as getRank and getSuit, appear before the composite
        functions which call the simpler functions, such as leadSuit. The advantage of adapting this convention is as reader will
@@ -19,12 +17,12 @@ Strategy:
     The bot plays its cards according to whether or not it has won as many tricks as it bid.
 
     Bidding:
-    Roughly, the number of trump cards in hand gauge the number of tricks the bot would win.
-    The higher ranking trump card will, statiscally, have more chances of being the highest 
+    Roughly, the number of trump cards and the aces in hand gauge the number of tricks the bot would win.
+    The higher ranking trump card will, statically, have more chances of being the highest 
     ranking card in the trick, however, one can argue that the lower ranking trump cards have 
     low chances of winning. So then the question arises, "Why does the bot takes the number of
-    trump card as the reference for bidding?" Well the answer is, if might not win using the 
-    low ranking trump cards but then chances are there will be high ranking cards of non-trump
+    trump card (and aces) as the reference for bidding?" Well the answer is, it might not win using the 
+    low ranking trump cards but then chances are that there will be high ranking cards of non-trump
     suits. So, in a probabilistic sense, the chances of winning by high-ranking non-trumps nullify
     the chances of losing by low-ranking trumps.
 
@@ -39,10 +37,10 @@ Strategy:
             The strategy to obstruct other players' winning is not effective when they are bidding low amounts,
             in fact, in some scenarios it can be beneficial to them since our bot may help them by making sure
             that they don't win more tricks. However, as most bots would want to win more - they would bid more,
-            therefore, in most cases, the gamble of implementing this stratagy pays off.
+            therefore, in most cases, the gamble of implementing this strategy pays off.
 
 
-    Conclusion: This many not be the best startegy, however, after being among the top 5 on the ladder,
+    Conclusion: This many not be the best strategy, however, after being among the top 5 on the ladder,
     for more than 3 days, I am confident that this is an effective strategy.
 -}
 
@@ -51,37 +49,36 @@ Strategy:
 import OhTypes
 import OhHell
 
+-- | getRank of the Card
 getRank :: Card -> Rank
 getRank (Card _ rank) = rank 
 
+-- | getSuit of the Card
 getSuit :: Card -> Suit
 getSuit (Card suit _) = suit
 
--- gt :: Suit -> Card -> Card -> Card
--- gt tSuit c1 c2
---     | c1Suit == c2Suit = max c1 c2
---     | c1Suit == tSuit = c1
---     | c2Suit == tSuit 
---     where
---         c1Suit = getSuit c1
---         c2Suit = getSuit c2
-
+-- | get the lead suit from [Card].
+-- [Card] is just PlayerIds removed from Trick
 leadSuit :: [Card] -> Suit
 leadSuit cs = getSuit $ last cs
 
+-- | From the given [Card] filter those which match the Suit
 cardsOfSuit :: [Card] -> Suit -> [Card]
 cardsOfSuit cs s = filter ((s==) . getSuit) cs
 
+-- | Drop the PlayerIds from trick and return [Card]
 cardsFromTrick :: Trick -> [Card]
 cardsFromTrick t = map fst t
 
+-- | Counting myWins using the winner from OhHell
 myWins :: PlayerId -> Suit -> [Trick] -> Int
 myWins pID tSuit ts = length(filter (pID==) (map (OhHell.winner tSuit) ts))
 
--- to correct $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+-- | Getting myBid from the bids
 myBid :: PlayerId -> [(PlayerId,Int)] -> Int
 myBid pID bs = snd $ head $ (filter((pID==).fst) bs)
 
+-- | quicksort the [Card] by their rank
 sortByRank :: [Card] -> [Card]
 sortByRank [] = []
 sortByRank (c:cs) = (sortByRank lower) ++ [c] ++ (sortByRank higher)
@@ -89,6 +86,7 @@ sortByRank (c:cs) = (sortByRank lower) ++ [c] ++ (sortByRank higher)
         lower = filter((< getRank c) . getRank) cs
         higher = filter((>= getRank c). getRank) cs
 
+-- | the function to play high ranking card
 tryToWin :: [Card] -> Suit -> [Card] -> Card
 tryToWin cs tSuit playedCards               -- $$$$ improve this so that it checks if following players have other cards or not
     | null playedCards = last $ sortByRank cs         -- $$$$ define a function to get the max
@@ -101,6 +99,7 @@ tryToWin cs tSuit playedCards               -- $$$$ improve this so that it chec
         trumpSuitCards = cardsOfSuit cs tSuit
         otherCards = filter (\c -> getSuit c /= tSuit && getSuit c /= ledSuit) cs
 
+-- | the function to play low ranking card 
 dontWin :: [Card] -> Suit -> [Card] -> Card
 dontWin cs tSuit playedCards                -- return highest card < the minimum.
     | null playedCards = head $ sortByRank cs
@@ -113,6 +112,7 @@ dontWin cs tSuit playedCards                -- return highest card < the minimum
         trumpSuitCards = cardsOfSuit cs tSuit
         otherCards = filter (\c -> getSuit c /= tSuit && getSuit c /= ledSuit) cs
 
+-- | playCard decides whether to the bot should tryToWin or tells the bot - `dontWin`
 playCard :: PlayFunc
 playCard pID cs bs trump ts thisTrick
     --  = playSomething cs (getSuit trump)
@@ -124,6 +124,10 @@ playCard pID cs bs trump ts thisTrick
         myWinValue = myWins pID trumpSuit ts
         currentCards = cardsFromTrick thisTrick
 
+-- | the bid function that tests if theBid follows HookRule
+-- if it doesn't then it tries to decrement the value
+-- if it cannot, because of the zero as lower bound, then
+-- it will increment theBid.
 makeBid :: BidFunc
 makeBid trump cs ps bids
     | followsHookRule = theBid
