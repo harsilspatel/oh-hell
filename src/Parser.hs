@@ -427,18 +427,6 @@ between start end p = do
     end 
     pure v
 
--- FileIO functions
-getFile :: FilePath -> IO (FilePath, String)
-getFile fp = (\content -> pure (fp, content)) =<< (readFile fp)
-
-printFile :: (FilePath, String) -> IO ()
-printFile (fp, s) = do
-    putStrLn ("> ================ " ++ fp)
-    putStrLn (foldr (\line ac -> "> " ++ line ++ "\n" ++ ac) "" (lines s))
-
-parseFile :: (FilePath, String) -> IO (FilePath, [String])
-parseFile (fp, s) = pure (fp, lines s)
-
 semiColonTok :: Parser Char
 semiColonTok = charTok ';'
 
@@ -478,7 +466,6 @@ toRank c
 rank :: Parser Rank
 rank = P (\i -> if elem (toRank i) [Two ..] then Result "" (toRank i) else Error UnexpectedEof)
 
-
 card :: Parser Card
 -- card = (Card <$> suit) <*> rank
 card = do
@@ -495,8 +482,7 @@ trick = toTrick <$> sepby card commaTok
 trickz :: Parser [Trick]
 trickz = sepby trick semiColonTok
 
--- x = 1539846726,0,1,11,0,S,"SA,C9,C8,C4;D2,S3,SJ,D6;H10,S4,HQ,S6"
-
+-- x = "1539846726,0,1,11,0,S,\"SA,C9,C8,C4;D2,S3,SJ,D6;H10,S4,HQ,S6\"\r"
 
 -- time,pos,bid,score,first,trump,tricks
 line :: Parser (Int, String, Int, Int, String, Suit, [Trick])
@@ -520,7 +506,8 @@ line = do
 getResult :: ParseResult a -> a
 getResult (Result _ result) = result
 
-
+-- | An implementation of find
+-- http://hackage.haskell.org/package/base-4.12.0.0/docs/Data-List.html#v:find
 find :: (a -> Bool) -> [a] -> Maybe a
 find f l
     | not $ null filtered = Just $ head $ filtered
@@ -529,7 +516,7 @@ find f l
         filtered = filter f l
 
 
--- An implementation of findIndex 
+-- | An implementation of findIndex 
 -- http://hackage.haskell.org/package/base-4.12.0.0/docs/Data-List.html#v:findIndex
 findIndex :: (a -> Bool) -> [a] -> Maybe Int
 findIndex f l
@@ -551,17 +538,44 @@ adjustTricks pID tSuit (t:ts) = [adjustedTrick] ++ (adjustTricks winnerID tSuit 
         winnerID = winner tSuit adjustedTrick
         adjustedTrick = adjustTrick pID t
 
-bidVsWinnings :: (Int, String, Int, Int, String, Suit, [Trick]) -> (Int, Int)
-bidVsWinnings (_, pos, bid, score, first, tSuit, ts)
+winningsVsBids :: (Int, String, Int, Int, String, Suit, [Trick]) -> (Int, Int)
+winningsVsBids (_, pos, bid, score, first, tSuit, ts)
     | score /= 0 = (bid, bid) -- if score is not zero, meaning my player won the game
-    | otherwise = (bid, winnings)
+    | otherwise = (winnings, bid)
     where
-        winnings = snd item
-        item = unwrapItem $ find ((pos==).fst) everyonesWinnings
+        winnings = unwrapItem $ find ((pos==).fst) everyonesWinnings
         everyonesWinnings = tallyTricks tSuit ts
-        unwrapItem (Just x) = x
+        unwrapItem Nothing = 0 -- if the player doesn't win anything tallyTricks doesn't have that players tuple with 0 wins, so we create a dummy tuple with zero wins.
+        unwrapItem (Just x) = snd x
 
-        
+-- FileIO functions
+getFile :: FilePath -> IO (FilePath, [String])
+getFile fp = (\content -> pure (fp, drop 1 (lines content))) =<< (readFile fp) -- dropping the header
 
--- parseFile :: Parser [(Int, String, Int, Int, String, Card, [Trick])]
--- parseFile 
+-- parseFile :: (FilePath, String) -> IO (FilePath, [String])
+-- parseFile (fp, s) = pure (fp, drop 1 (lines s)) 
+
+calcStats :: (FilePath, [String]) -> IO (FilePath, Int, Int, Int)
+calcStats (fp, ls) = pure(fp, lessThan, wins, greaterThan)
+    where
+        parsedLines = (parse line) <$> ls
+        lineResults = getResult <$> parsedLines
+        lineWinVsBid = winningsVsBids <$> lineResults
+        wins = length $ filter (\x -> fst x == snd x) lineWinVsBid
+        lessThan = length $ filter (\x -> fst x < snd x) lineWinVsBid
+        greaterThan = length $ filter (\x -> fst x > snd x) lineWinVsBid
+
+printStats :: (FilePath, Int, Int, Int) -> IO ()
+printStats (fp, lessThan, wins, greaterThan) = do
+    putStrLn ("Stats of file: " ++ fp)
+    putStrLn ("# of winnings: " ++ show wins)
+    putStrLn ("# of times bot exceeded the bid: " ++ show greaterThan)
+    putStrLn ("# of times bot could not reach the bid: " ++ show lessThan)
+    
+parserMain :: IO ()
+parserMain = do
+    putStrLn ("Please enter the filepath: ")
+    fp <- getLine
+    content <- getFile fp
+    stats <- calcStats content
+    printStats stats
