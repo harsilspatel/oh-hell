@@ -420,6 +420,12 @@ oneof s = satisfy(\i -> elem i s)
 noneof :: String -> Parser Char
 noneof s = satisfy(\i -> notElem i s)
 
+between :: Parser s -> Parser e -> Parser a -> Parser a
+between start end p = do
+    start
+    v <- p
+    end 
+    pure v
 
 -- FileIO functions
 getFile :: FilePath -> IO (FilePath, String)
@@ -447,11 +453,14 @@ toSuit c = case c of
 -- suit = P (\i -> if elem (toSuit $ head i) [Spade ..] then Result "" (toSuit $ head i) else Error UnexpectedEof)
 
 suit :: Parser Suit
-suit = P (\i -> case i of
-    "S" -> Result "" Spade
-    "C" -> Result "" Club
-    "D" -> Result "" Diamond
-    "H" -> Result "" Heart)
+suit = P check
+    where
+        check i
+            | head i == 'S' = Result (tail i) (Spade)
+            | head i == 'C' = Result (tail i) (Club)
+            | head i == 'D' = Result (tail i) (Diamond)
+            | head i == 'H' = Result (tail i) (Heart)
+            | otherwise = Error (UnexpectedChar (head i))
 
 -- ASCII 2 = 50
 -- Rank Two = 0
@@ -469,12 +478,13 @@ toRank c
 rank :: Parser Rank
 rank = P (\i -> if elem (toRank i) [Two ..] then Result "" (toRank i) else Error UnexpectedEof)
 
+
 card :: Parser Card
-card = (Card <$> suit) <*> rank
--- card = do
---     s <- alpha
---     r <- list1 alphaNum
---     pure (Card (toSuit s) (toRank r))
+-- card = (Card <$> suit) <*> rank
+card = do
+    s <- alpha
+    r <- list1 alphaNum
+    pure (Card (toSuit s) (toRank r))
 
 toTrick :: [Card] -> Trick
 toTrick cs = zip cs (map show [0..])
@@ -492,30 +502,26 @@ trickss = do
     pure t
 
 trickz :: Parser [Trick]
-trickz = do
-    t <- (sepby trick semiColonTok)
+trickz = sepby trick semiColonTok
 
-    pure t
-
--- x = "2539675864,3,4,11,5,C,\"H9,CA,D2,C6;H4,H5,HA,D10;D5,H7,HQ,C3\"\r"
+-- x = "2549675864,3,4,11,5,C,\"H9,CA,D2,C6;H4,H5,HA,D10;D5,H7,HQ,C3\"\r"
 
 -- time,pos,bid,score,first,trump,tricks
 parseLine :: Parser (Int, String, Int, Int, String, Suit, [Trick])
 parseLine = do 
     time <- digits
     commaTok
-    pos <- alphas
+    pos <- digits
     commaTok
     bid <- digits
     commaTok
     score <- digits
     commaTok
-    first <- alphas
+    first <- digits
     commaTok
     trump <- suit
     commaTok
-    charTok '\"'
-    ts <- trickz
+    ts <- (between (is '"') (is '"') trickz) 
     pure (read time :: Int, pos, read bid :: Int, read score :: Int, first, trump, ts)
     -- pure (undefined)
 
