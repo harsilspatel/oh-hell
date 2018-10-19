@@ -515,7 +515,11 @@ parseLine = do
     ts <- (between (is '"') (is '"') trickz) 
     pure (read time :: Int, pos, read bid :: Int, read score :: Int, first, trump, ts)
 
+getAnswer :: ParseResult a -> a
+getAnswer (Result _ result) = result
 
+-- An implementation of findIndex 
+-- http://hackage.haskell.org/package/base-4.12.0.0/docs/Data-List.html#v:findIndex
 findIndex :: (a -> Bool) -> [a] -> Maybe Int
 findIndex f l
     | not $ null filtered = Just $ snd $ head filtered
@@ -523,8 +527,18 @@ findIndex f l
     where
         filtered = (filter (f.fst) (zip l [0..]))
 
-
-
+adjustTrick :: PlayerId -> Trick -> Trick
+adjustTrick pID t = drop index t ++ take index t
+        where
+            index = unwrapIndex $ findIndex ((pID==).snd) t
+            unwrapIndex (Just x) = x+1 -- index needs to be adjusted as (take n l) will return 0..n-1 elements
+            
+adjustTricks :: PlayerId -> Suit -> [Trick] -> [Trick]
+adjustTricks pID tSuit [] = []
+adjustTricks pID tSuit (t:ts) = [adjustedTrick] ++ (adjustTricks winnerID tSuit ts)
+    where
+        winnerID = winner tSuit adjustedTrick
+        adjustedTrick = adjustTrick pID t
 
 -- parseFile :: Parser [(Int, String, Int, Int, String, Card, [Trick])]
 -- parseFile 
