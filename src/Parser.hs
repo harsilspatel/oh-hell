@@ -572,7 +572,8 @@ printStats (fp, lessThan, wins, greaterThan) = do
     putStrLn ("# of winnings: " ++ show wins)
     putStrLn ("# of times bot exceeded the bid: " ++ show greaterThan)
     putStrLn ("# of times bot could not reach the bid: " ++ show lessThan)
-    
+
+
 parserMain :: IO ()
 parserMain = do
     putStrLn ("Please enter the filepath: ")
