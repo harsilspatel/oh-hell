@@ -544,7 +544,8 @@ winningsVsBids (_, pos, bid, score, first, tSuit, ts)
     | otherwise = (winnings, bid)
     where
         winnings = unwrapItem $ find ((pos==).fst) everyonesWinnings
-        everyonesWinnings = tallyTricks tSuit ts
+        everyonesWinnings = tallyTricks tSuit adjustedTrick
+        adjustedTrick = adjustTricks pos tSuit ts
         unwrapItem Nothing = 0 -- if the player doesn't win anything tallyTricks doesn't have that players tuple with 0 wins, so we create a dummy tuple with zero wins.
         unwrapItem (Just x) = snd x
 
