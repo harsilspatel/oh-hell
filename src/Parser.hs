@@ -495,11 +495,12 @@ trick = toTrick <$> sepby card commaTok
 trickz :: Parser [Trick]
 trickz = sepby trick semiColonTok
 
--- x = "2549675864,3,4,11,5,C,\"H9,CA,D2,C6;H4,H5,HA,D10;D5,H7,HQ,C3\"\r"
+-- x = 1539846726,0,1,11,0,S,"SA,C9,C8,C4;D2,S3,SJ,D6;H10,S4,HQ,S6"
+
 
 -- time,pos,bid,score,first,trump,tricks
-parseLine :: Parser (Int, String, Int, Int, String, Suit, [Trick])
-parseLine = do 
+line :: Parser (Int, String, Int, Int, String, Suit, [Trick])
+line = do 
     time <- digits
     commaTok
     pos <- digits
@@ -512,11 +513,21 @@ parseLine = do
     commaTok
     trump <- suit
     commaTok
-    ts <- (between (is '"') (is '"') trickz) 
+    ts <- (between (is '"') (is '"') trickz)
+    charTok '\r'
     pure (read time :: Int, pos, read bid :: Int, read score :: Int, first, trump, ts)
 
-getAnswer :: ParseResult a -> a
-getAnswer (Result _ result) = result
+getResult :: ParseResult a -> a
+getResult (Result _ result) = result
+
+
+find :: (a -> Bool) -> [a] -> Maybe a
+find f l
+    | not $ null filtered = Just $ head $ filtered
+    | otherwise = Nothing
+    where
+        filtered = filter f l
+
 
 -- An implementation of findIndex 
 -- http://hackage.haskell.org/package/base-4.12.0.0/docs/Data-List.html#v:findIndex
@@ -534,11 +545,23 @@ adjustTrick pID t = drop index t ++ take index t
             unwrapIndex (Just x) = x+1 -- index needs to be adjusted as (take n l) will return 0..n-1 elements
             
 adjustTricks :: PlayerId -> Suit -> [Trick] -> [Trick]
-adjustTricks pID tSuit [] = []
+adjustTricks _ _ [] = []
 adjustTricks pID tSuit (t:ts) = [adjustedTrick] ++ (adjustTricks winnerID tSuit ts)
     where
         winnerID = winner tSuit adjustedTrick
         adjustedTrick = adjustTrick pID t
+
+bidVsWinnings :: (Int, String, Int, Int, String, Suit, [Trick]) -> (Int, Int)
+bidVsWinnings (_, pos, bid, score, first, tSuit, ts)
+    | score /= 0 = (bid, bid) -- if score is not zero, meaning my player won the game
+    | otherwise = (bid, winnings)
+    where
+        winnings = snd item
+        item = unwrapItem $ find ((pos==).fst) everyonesWinnings
+        everyonesWinnings = tallyTricks tSuit ts
+        unwrapItem (Just x) = x
+
+        
 
 -- parseFile :: Parser [(Int, String, Int, Int, String, Card, [Trick])]
 -- parseFile 

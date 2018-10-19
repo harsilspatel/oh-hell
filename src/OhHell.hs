@@ -6,7 +6,7 @@ module OhHell
     sortedDeck, shuffledDeck, shuffleList,
     deal, newPlayer, winner,
     bidSize, hookRule, reneging,
-    playHand, playGame, initElo
+    playHand, playGame, initElo, tallyTricks
   ) where
 
 import System.Random
