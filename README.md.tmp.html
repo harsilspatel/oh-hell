@@ -1,0 +1,56 @@
+<h1>OhHell</h1>
+
+<h2>Files Included:</h2>
+
+<ul>
+<li>Parser.hs (src)</li>
+<li>Instances.hs (src)</li>
+<li>playerNaive.hs (players)</li>
+</ul>
+
+<h2>Files modified:</h2>
+
+<ul>
+<li>OhHell.hs: to export the tallyTricks function that is used by Parser.hs</li>
+</ul>
+
+<h2>Bot overview:</h2>
+
+<h3>Bidding</h3>
+
+<ul>
+<li>The bid is chosen based on the number of aces and trump cards</li>
+<li>Before returning the chosen bid, the function checks whether or not theBid obeys the HookRule, if it does not then it will decrement/increment it.</li>
+</ul>
+
+<h3>Playing card</h3>
+
+<ul>
+<li>Depending on whether the tricks won so far matches the bid amount or not, the bot chooses to play higher or lower cards</li>
+<li>It does not simply follow a greedy implementation, i.e. it does not play just the highest or the lowest card</li>
+<li>A comprehensive description is described in the Player.hs</li>
+</ul>
+
+<h2>Extra:</h2>
+
+<h3>Generalisation</h3>
+
+<p>The Parser and the Player have been wriiten to play with <i>n</i> number of players and <i>m</i> number of cards. Although the given files will have to be modified for the whole game to support generalisation, for instance: OhHell.maxHand is hard-coded to 12.</p>
+
+<h3>Parser</h3>
+
+<ul>
+<li>The parser is an extension to week 10 and week 11 tutorial exercises.</li>
+<li>Parser get "first" from logs and rearranges the first trick such that "first" player's hand is last. We then pass it to OhHell.winner, which assumes that leading player's card is last. OhHell.winner will return the playerId of winner of that trick, so now that playerId is our "first" for the second trick. Therefore, we do this to the all tricks and rearrange them. We then pass the [Trick] to tallyTricks which will output the [(PlayerId, wins)]. The parser then compares the players wins with its bids and outputs the results. (Please note that parsing a 20-line file takes a fair bit of time.)</li>
+<li>The provided implementation of parser parses a log file to indicate how many times did the bot match its bid (won), the number of times it did not reach the bid and the number of times it exceeded the bid.</li>
+<li><p>Based on the parser reading of my previous version of my bot, the one that only used to bid by trump cards, I learned that the number of times it exceeded the bid was fairly high, so to improve the bot, I tweaked funcitons in the following way:</p>
+
+<pre><code>- Bid: The bid also considers non-trump aces
+- Playing: Implemented sortByRank to get highest and lowest ranking cards (so I can begin with highest ranking card if I'm the lead player)
+</code></pre></li>
+<li>Last, but the most interesting discovery is that the provided code that which on executing <i>stack exec staticgame</i>, gives various stats such as number of wins and under and over bidding values are wrongs, and my parser's results prove that!</li>
+</ul>
+
+<h4>Code by: Harsil S. Patel</h4>
+
+<h4>Student ID: 28334825</h4>

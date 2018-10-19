@@ -88,10 +88,12 @@ sortByRank (c:cs) = (sortByRank lower) ++ [c] ++ (sortByRank higher)
 
 -- | the function to play high ranking card
 tryToWin :: [Card] -> Suit -> [Card] -> Card
-tryToWin cs tSuit playedCards               -- $$$$ improve this so that it checks if following players have other cards or not
-    | null playedCards = last $ sortByRank cs         -- $$$$ define a function to get the max
-    | not $ null ledSuitCards = maximum ledSuitCards
-    | not $ null trumpSuitCards = minimum trumpSuitCards
+tryToWin cs tSuit playedCards              
+    | null playedCards = last $ sortByRank cs  -- if my bot is first to play then choose any card with highest rank
+    | not $ null ledSuitCards = maximum ledSuitCards -- else get highest ranking card of lead suit
+    | not $ null trumpSuitCards = minimum trumpSuitCards -- or get minimum trumpSuitCard (here I can have "maximum trumpSuitCards" but chances are that
+                                                         -- someone else can have a higher card than my highest trump, but then it is also possible that
+                                                         -- no one else plays trump so I can just by playing minimum trump get the whole trick)
     | otherwise = head $ sortByRank otherCards
     where
         ledSuit = leadSuit playedCards
@@ -101,11 +103,11 @@ tryToWin cs tSuit playedCards               -- $$$$ improve this so that it chec
 
 -- | the function to play low ranking card 
 dontWin :: [Card] -> Suit -> [Card] -> Card
-dontWin cs tSuit playedCards                -- return highest card < the minimum.
-    | null playedCards = head $ sortByRank cs
-    | not $ null ledSuitCards = minimum ledSuitCards
-    | not $ null otherCards = last $ sortByRank otherCards
-    | otherwise = minimum trumpSuitCards
+dontWin cs tSuit playedCards             
+    | null playedCards = head $ sortByRank cs  -- if my bot is first to play then choose any card with lowest rank
+    | not $ null ledSuitCards = minimum ledSuitCards  -- else get lowest ranking card of lead suit
+    | not $ null otherCards = last $ sortByRank otherCards -- else high ranking card of any other suit, so that we do not win any other trick using that card.
+    | otherwise = minimum trumpSuitCards -- if nothing then lowest trump
     where
         ledSuit = leadSuit playedCards
         ledSuitCards = cardsOfSuit cs ledSuit
