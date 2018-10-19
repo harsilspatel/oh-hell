@@ -492,15 +492,6 @@ toTrick cs = zip cs (map show [0..])
 trick :: Parser Trick
 trick = toTrick <$> sepby card commaTok
 
--- processTrick :: Parser [Char] -> Trick
--- processTrick P ()
-
-trickss :: Parser [Trick]
-trickss = do
-    charTok '\"'
-    t <- (sepby trick semiColonTok)
-    pure t
-
 trickz :: Parser [Trick]
 trickz = sepby trick semiColonTok
 
@@ -523,7 +514,17 @@ parseLine = do
     commaTok
     ts <- (between (is '"') (is '"') trickz) 
     pure (read time :: Int, pos, read bid :: Int, read score :: Int, first, trump, ts)
-    -- pure (undefined)
+
+
+findIndex :: (a -> Bool) -> [a] -> Maybe Int
+findIndex f l
+    | not $ null filtered = Just $ snd $ head filtered
+    | otherwise = Nothing
+    where
+        filtered = (filter (f.fst) (zip l [0..]))
+
+
+
 
 -- parseFile :: Parser [(Int, String, Int, Int, String, Card, [Trick])]
 -- parseFile 
